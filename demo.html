@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>solarium — liquid glass</title>
+    <link rel="stylesheet" href="./menuview.css" />
+    <style>
+      @font-face {
+        font-family: "Segoe UI This";
+        src: url("../../segoe-ui-this/segoeuithis.ttf") format("truetype");
+        font-weight: 400;
+        font-style: normal;
+      }
+
+      @font-face {
+        font-family: "Segoe UI This";
+        src: url("../../segoe-ui-this/segoeuithibd.ttf") format("truetype");
+        font-weight: 600 700;
+        font-style: normal;
+      }
+
+      :root {
+        color-scheme: dark;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+      }
+
+      body {
+        overflow: hidden;
+        background: #05060a;
+        color: rgba(255, 255, 255, 0.92);
+        font-family: "Segoe UI This", "SF Pro Display", "Segoe UI Variable Display", -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+        -webkit-font-smoothing: antialiased;
+        user-select: none;
+      }
+
+      .scene {
+        position: fixed;
+        inset: 0;
+        z-index: 0;
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+
+      .stage {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 28px;
+        min-height: 100%;
+        padding: 48px 24px;
+      }
+
+      header {
+        text-align: center;
+      }
+
+      h1 {
+        margin: 0 0 6px;
+        font-size: 21px;
+        font-weight: 600;
+        letter-spacing: 0.01em;
+      }
+
+      header p {
+        margin: 0;
+        font-size: 13px;
+        color: rgba(255, 255, 255, 0.5);
+      }
+
+      .card {
+        position: relative;
+        width: min(80vw, 420px);
+        padding: 24px 26px;
+        border-radius: 28px;
+        overflow: hidden;
+        cursor: grab;
+        touch-action: none;
+      }
+
+      .card-content {
+        position: relative;
+        z-index: 1;
+      }
+
+      .card h2 {
+        margin: 0 0 8px;
+        font-size: 17px;
+        font-weight: 500;
+      }
+
+      .card p {
+        margin: 0;
+        font-size: 13px;
+        line-height: 1.45;
+        color: rgba(255, 255, 255, 0.62);
+      }
+
+      .row {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: center;
+        gap: 26px;
+      }
+
+      .effect-card {
+        position: relative;
+        width: 250px;
+        height: 118px;
+        border-radius: 24px;
+        overflow: hidden;
+        cursor: grab;
+        touch-action: none;
+      }
+
+      .effect-card .card-content {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        height: 100%;
+        padding: 0 22px;
+      }
+
+      .effect-card h2 {
+        margin: 0 0 4px;
+        font-size: 15px;
+        font-weight: 500;
+      }
+
+      .effect-card p {
+        margin: 0;
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.55);
+      }
+
+      .controls {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        width: 220px;
+      }
+
+      .control-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .control-row .slider-host {
+        flex: 1;
+      }
+
+      .control-row .readout {
+        width: 42px;
+        font-size: 12px;
+        font-variant-numeric: tabular-nums;
+        color: rgba(255, 255, 255, 0.55);
+        text-align: right;
+      }
+
+      .control-label {
+        width: 54px;
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.55);
+      }
+
+      .lens-host {
+        width: 140px;
+        height: 38px;
+        touch-action: none;
+      }
+
+      .backdrop-button {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        height: 34px;
+        padding: 0 18px;
+        border: 0;
+        border-radius: 18px;
+        background: transparent;
+        color: rgba(255, 255, 255, 0.9);
+        font-family: inherit;
+        font-size: 12.5px;
+        font-weight: 500;
+        cursor: grab;
+        touch-action: none;
+      }
+
+      .backdrop-button:active,
+      .card:active,
+      .effect-card:active {
+        cursor: grabbing;
+      }
+
+      .backdrop-button.is-pinching,
+      .card.is-pinching,
+      .effect-card.is-pinching {
+        box-shadow:
+          0 0 24px 5px rgba(130, 215, 255, 0.78),
+          0 0 56px 14px rgba(95, 160, 255, 0.45),
+          inset 0 0 18px rgba(255, 255, 255, 0.65);
+        z-index: 20;
+      }
+
+      #menu-button { height: 44px; border-radius: 22px; }
+      #menu-button svg { display: block; }
+
+      /* The glass surface is the button's first child; the label has to paint
+         above it. */
+      .backdrop-label {
+        position: relative;
+        z-index: 1;
+      }
+
+      .backdrop-controls {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+      }
+
+      .hint {
+        margin: 0;
+        max-width: 460px;
+        font-size: 12px;
+        line-height: 1.5;
+        color: rgba(255, 255, 255, 0.42);
+        text-align: center;
+      }
+      .lens-host > :focus-visible { outline: 2px solid white; outline-offset: 5px; border-radius: 999px; }
+      .tab-bar-section {
+        display: flex;
+        justify-content: center;
+        width: min(90vw, 380px);
+        margin: 6px 0;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas class="scene" aria-hidden="true"></canvas>
+
+    <main class="stage">
+      <header>
+        <h1>solarium</h1>
+        <p>LiquidGlassKit, ported to JavaScript and WebGL2</p>
+      </header>
+
+      <div class="backdrop-controls">
+        <button class="backdrop-button" id="backdrop-button" type="button">
+          <span class="backdrop-label" id="backdrop-label">Backdrop: Gradient</span>
+        </button>
+        <button class="backdrop-button" id="upload-button" type="button">
+          <span class="backdrop-label">Upload photos</span>
+        </button>
+        <button class="backdrop-button" id="menu-button" type="button" aria-label="Demo actions">
+          <span class="backdrop-label" aria-hidden="true"><svg width="58" height="18" viewBox="0 0 58 18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M2 6h8M2 9h8M2 12h5"/><circle cx="36" cy="9" r="1.6" fill="currentColor" stroke="none"/><circle cx="44" cy="9" r="1.6" fill="currentColor" stroke="none"/><circle cx="52" cy="9" r="1.6" fill="currentColor" stroke="none"/></svg></span>
+        </button>
+        <input id="backdrop-upload" type="file" accept="image/*" multiple hidden />
+      </div>
+
+      <section class="card" id="panel-card">
+        <div class="card-content">
+          <h2>LiquidGlass.regular()</h2>
+          <p>
+            Refraction, chromatic dispersion, Fresnel rim and glare, drawn from
+            the captured backdrop behind this panel. Move the pointer across the
+            edges to see the rim shift.
+          </p>
+        </div>
+      </section>
+
+      <div class="row">
+        <section class="effect-card" id="effect-card">
+          <div class="card-content">
+            <h2>LiquidGlassEffect</h2>
+            <p>Hosted by VisualEffectView(effect:)</p>
+          </div>
+        </section>
+
+        <div class="controls">
+          <div class="control-row">
+            <span class="control-label">Slider</span>
+            <div class="slider-host" id="slider-host"></div>
+            <span class="readout" id="slider-readout">0.35</span>
+          </div>
+          <div class="control-row">
+            <span class="control-label">Switch</span>
+            <div id="switch-host"></div>
+            <span class="readout" id="switch-readout">on</span>
+          </div>
+          <div class="control-row">
+            <span class="control-label">Lens</span>
+            <div class="lens-host" id="lens-host"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-bar-section">
+        <tab-bar id="demo-tab-bar"></tab-bar>
+      </div>
+
+      <p class="hint">
+        Drag the slider thumb or the switch thumb to see the contracted pill morph
+        into glass. Drag the lens pill to lift and move it;
+        its squash and stretch follow its acceleration. Arrow keys also move it. The two glass buttons
+        cycle the backdrop and add photos of your own.
+      </p>
+    </main>
+
+    <script type="module">
+      import {
+        LiquidGlass,
+        LiquidGlassEffect,
+        LiquidGlassSlider,
+        LiquidGlassSwitch,
+        LiquidGlassTabBar,
+        LiquidGlassView,
+        LiquidLensView,
+        MenuView,
+        VisualEffectView,
+        prefersReducedMotion,
+      } from './index.js';
+
+      const scene = document.querySelector('.scene');
+      const context = scene.getContext('2d');
+      const reducedMotion = prefersReducedMotion();
+
+      // The demo backdrop: a slow gradient with drifting colour blobs. It is a
+      // plain 2D canvas because that is also the simplest drawable the glass
+      // can sample, and because moving colour makes the refraction visible.
+      const blobs = [
+        { radius: 0.30, speed: 0.21, phase: 0.0, color: '255, 122, 89' },
+        { radius: 0.24, speed: -0.17, phase: 1.7, color: '255, 209, 102' },
+        { radius: 0.34, speed: 0.13, phase: 3.1, color: '90, 120, 255' },
+        { radius: 0.22, speed: -0.11, phase: 4.4, color: '0, 214, 160' },
+      ];
+
+      function resizeScene() {
+        const dpr = window.devicePixelRatio || 1;
+        scene.width = Math.max(1, Math.round(innerWidth * dpr));
+        scene.height = Math.max(1, Math.round(innerHeight * dpr));
+      }
+
+      function drawScene(time) {
+        const width = scene.width;
+        const height = scene.height;
+        const gradient = context.createLinearGradient(0, 0, width, height);
+        gradient.addColorStop(0, '#120b2c');
+        gradient.addColorStop(0.5, '#1c2a52');
+        gradient.addColorStop(1, '#0a0f1c');
+        context.fillStyle = gradient;
+        context.fillRect(0, 0, width, height);
+
+        context.globalCompositeOperation = 'lighter';
+        for (const blob of blobs) {
+          const drift = time * blob.speed + blob.phase;
+          const x = width * (0.5 + Math.cos(drift) * 0.32);
+          const y = height * (0.5 + Math.sin(drift * 1.3) * 0.3);
+          const radius = Math.min(width, height) * blob.radius;
+          const glow = context.createRadialGradient(x, y, 0, x, y, radius);
+          glow.addColorStop(0, `rgba(${blob.color}, 0.85)`);
+          glow.addColorStop(1, `rgba(${blob.color}, 0)`);
+          context.fillStyle = glow;
+          context.beginPath();
+          context.arc(x, y, radius, 0, Math.PI * 2);
+          context.fill();
+        }
+        context.globalCompositeOperation = 'source-over';
+      }
+
+      const sourceBounds = () => scene.getBoundingClientRect();
+
+      const panel = document.getElementById('panel-card');
+      const panelGlass = new LiquidGlassView(LiquidGlass.regular(), {
+        source: scene,
+        sourceBounds,
+        cornerRadius: 28,
+        interactive: true,
+      });
+      Object.assign(panelGlass.element.style, { position: 'absolute', inset: '0' });
+      panel.prepend(panelGlass.element);
+
+      const effectView = VisualEffectView(new LiquidGlassEffect('regular'));
+      effectView.setBackgroundSource(scene, sourceBounds);
+      const effectCard = document.getElementById('effect-card');
+      effectView.element.style.position = 'absolute';
+      effectView.element.style.inset = '0';
+      // The effect view carries the corner radius itself, the way a UIView does;
+      // its layout pass passes that radius on to the glass surface.
+      effectView.element.style.borderRadius = '24px';
+      effectCard.prepend(effectView.element);
+      effectView.layout();
+
+      const slider = new LiquidGlassSlider({
+        source: scene,
+        sourceBounds,
+        value: 0.35,
+        minimumValue: 0,
+        maximumValue: 1,
+      });
+      document.getElementById('slider-host').append(slider.element);
+      slider.layout();
+
+      const sliderReadout = document.getElementById('slider-readout');
+      slider.element.addEventListener('input', () => {
+        sliderReadout.textContent = slider.value.toFixed(2);
+      });
+
+      const toggle = new LiquidGlassSwitch({ source: scene, sourceBounds, isOn: true });
+      document.getElementById('switch-host').append(toggle.element);
+      const switchReadout = document.getElementById('switch-readout');
+      toggle.element.addEventListener('change', () => {
+        switchReadout.textContent = toggle.isOn ? 'on' : 'off';
+      });
+
+      const lens = new LiquidLensView({ source: scene, sourceBounds });
+      // The lens fills whatever box the host gives it; its children are all
+      // absolutely positioned, so it has no intrinsic size of its own.
+      Object.assign(lens.element.style, { width: '100%', height: '100%' });
+      document.getElementById('lens-host').append(lens.element);
+      lens.setDraggable();
+      lens.element.tabIndex = 0;
+      lens.element.setAttribute('role', 'group');
+      lens.element.setAttribute('aria-label', 'Glass lens. Drag to move, or use arrow keys. Escape cancels.');
+
+      const tabBar = document.getElementById('demo-tab-bar');
+      tabBar.setBackgroundSource(scene, sourceBounds);
+
+      // The backdrop button swaps a procedural scene for a bundled image. The
+      // image lives in assets/, which is why the demo is served from the
+      // repository root rather than from this directory.
+      let backdropIndex = 0;
+      let artworkReady = false;
+      const artwork = new Image();
+      artwork.addEventListener('load', () => {
+        artworkReady = true;
+        drawBackdrop(lastFrame / 1000);
+        refreshGlass();
+      });
+      artwork.src = './AndroidLiquidGlass/app/src/commonMain/composeResources/drawable/wallpaper_light.webp';
+
+      const backdrops = [
+        { label: 'Wallpaper', image: artwork },
+        { label: 'Gradient', draw: time => drawScene(time) },
+      ];
+
+      // Cover the canvas with the image and drift a slow zoom over it, so the
+      // glass keeps something moving to refract.
+      function drawImageBackdrop(image, time) {
+        const width = scene.width;
+        const height = scene.height;
+        const zoom = 1.03 + Math.sin(time * 0.12) * 0.015;
+        const scale = Math.max(width / image.naturalWidth, height / image.naturalHeight) * zoom;
+        const drawWidth = image.naturalWidth * scale;
+        const drawHeight = image.naturalHeight * scale;
+        context.drawImage(
+          image,
+          (width - drawWidth) / 2,
+          (height - drawHeight) / 2,
+          drawWidth,
+          drawHeight
+        );
+        // Subtle dim matching BackdropDemoScaffold in AndroidLiquidGlass
+        context.fillStyle = 'rgba(0, 0, 0, 0.12)';
+        context.fillRect(0, 0, width, height);
+      }
+
+      function drawBackdrop(time) {
+        const backdrop = backdrops[backdropIndex];
+        if (!backdrop.image) {
+          backdrop.draw(time);
+          return;
+        }
+        // Until the image decodes, the gradient stands in for it.
+        if (artworkReady) {
+          drawImageBackdrop(backdrop.image, time);
+        } else {
+          drawScene(time);
+        }
+      }
+
+      // Both buttons are glass pills, so they double as material demos.
+      function decorateWithGlass(button) {
+        const glass = new LiquidGlassView(LiquidGlass.clear(), {
+          source: scene,
+          sourceBounds,
+          cornerRadius: 18,
+          interactive: true,
+        });
+        Object.assign(glass.element.style, { position: 'absolute', inset: '0' });
+        button.prepend(glass.element);
+        return glass;
+      }
+
+      const backdropButton = document.getElementById('backdrop-button');
+      const backdropLabel = document.getElementById('backdrop-label');
+      const backdropGlass = decorateWithGlass(backdropButton);
+
+      const uploadButton = document.getElementById('upload-button');
+      const uploadGlass = decorateWithGlass(uploadButton);
+      const uploadInput = document.getElementById('backdrop-upload');
+
+      function updateBackdropLabel() {
+        backdropLabel.textContent = `Backdrop: ${backdrops[backdropIndex].label}`;
+      }
+
+      function showBackdrop() {
+        updateBackdropLabel();
+        drawBackdrop(lastFrame / 1000);
+        refreshGlass();
+      }
+
+      backdropButton.addEventListener('click', () => {
+        backdropIndex = (backdropIndex + 1) % backdrops.length;
+        showBackdrop();
+      });
+
+      // Uploaded photos join the same list, so the backdrop button cycles them
+      // together with the built-in backdrops.
+      let awaitingFirstUpload = true;
+      uploadButton.addEventListener('click', () => uploadInput.click());
+      uploadInput.addEventListener('change', () => {
+        const files = Array.from(uploadInput.files || [])
+          .filter(file => file.type.startsWith('image/'));
+        uploadInput.value = '';
+        awaitingFirstUpload = true;
+
+        for (const file of files) {
+          const url = URL.createObjectURL(file);
+          const image = new Image();
+          image.addEventListener('load', () => {
+            // The object URL only has to live until the bitmap is decoded; the
+            // Image keeps the pixels from then on.
+            URL.revokeObjectURL(url);
+            const label = file.name.replace(/\.[^.]+$/, '').slice(0, 20) || 'Photo';
+            backdrops.push({ label, image });
+            // The first photo of a batch becomes the visible backdrop, the rest
+            // wait behind it in the cycle.
+            if (awaitingFirstUpload) {
+              awaitingFirstUpload = false;
+              backdropIndex = backdrops.length - 1;
+              showBackdrop();
+            }
+          });
+          image.addEventListener('error', () => URL.revokeObjectURL(url));
+          image.src = url;
+        }
+      });
+
+      const menuButton = document.getElementById('menu-button');
+      const menuGlass = decorateWithGlass(menuButton);
+      menuGlass.setCornerRadius(22);
+      const menu = new MenuView(menuButton, {
+        source: scene,
+        sourceBounds,
+        theme: 'dark',
+        placement: 'morph',
+        items: [
+          { type: 'action', actionKey: 'share', actionTitle: 'Share', icon: MenuView.icons.share },
+          { label: 'Duplicate', icon: MenuView.icons.copy },
+          {
+            type: 'menu', menuTitle: 'Add to Playlist', menuItems: [
+              { type: 'action', actionKey: 'fav', actionTitle: 'Favorites', menuState: 'on' },
+              { type: 'action', actionKey: 'fresh', actionTitle: 'New Playlist…' },
+            ],
+          },
+          { label: 'Delete', icon: MenuView.icons.trash, destructive: true, disabled: true },
+        ],
+      });
+
+      updateBackdropLabel();
+
+      // Exposed so the page can be poked at from a console (and so the demo can
+      // be probed without digging through the DOM).
+      window.solarium = {
+        panelGlass,
+        menu,
+        backdropGlass,
+        uploadGlass,
+        effectView,
+        slider,
+        toggle,
+        lens,
+        tabBar,
+        backdrops,
+      };
+
+      function refreshGlass() {
+        panelGlass.requestDraw();
+        backdropGlass.requestDraw();
+        uploadGlass.requestDraw();
+        menuGlass.requestDraw();
+        if (effectView.liquidGlassView) {
+          effectView.liquidGlassView.requestDraw();
+        }
+        // The thumbs and the lens are only in the hierarchy while they are
+        // expanded or lifted, so there is nothing to refresh otherwise.
+        if (lens.lifted) {
+          lens.glass.requestDraw();
+        }
+        if (slider.thumb.expanded) {
+          slider.glass.requestDraw();
+        }
+        if (toggle.thumb.expanded) {
+          toggle.glass.requestDraw();
+        }
+        tabBar.requestDraw();
+      }
+
+      let lastFrame = 0;
+
+      function frame(now) {
+        if (!reducedMotion) {
+          requestAnimationFrame(frame);
+        }
+        lastFrame = now;
+        drawBackdrop(now / 1000);
+        refreshGlass();
+      }
+
+      resizeScene();
+      drawBackdrop(0);
+      addEventListener('resize', () => {
+        resizeScene();
+        drawBackdrop(lastFrame / 1000);
+        effectView.layout();
+        slider.layout();
+        tabBar.layout();
+        refreshGlass();
+      });
+
+      if (reducedMotion) {
+        // No drifting backdrop: capture once and rely on the controls to
+        // request their own redraws while they are interacted with.
+        refreshGlass();
+      } else {
+        requestAnimationFrame(frame);
+      }
+    </script>
+  </body>
+</html>
